@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weazel Signs Map - GTA SA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Weazel Signs Map</h1>
+            <div class="header-controls">
+                <button id="addPointBtn" class="btn btn-primary">+ Ajouter un point</button>
+                <button id="clearAllBtn" class="btn btn-danger">🗑️ Tout effacer</button>
+                <span class="zoom-info">Zoom: <span id="zoomLevel">100</span>%</span>
+            </div>
+        </header>
+
+        <!-- Main content -->
+        <div class="content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>Points</h2>
+                    <span class="point-count" id="pointCount">0</span>
+                </div>
+                <div class="sidebar-content" id="pointsList">
+                    <p class="empty-state">Aucun point ajouté</p>
+                </div>
+            </aside>
+
+            <!-- Map container -->
+            <main class="map-container">
+                <div class="map-viewport" id="mapViewport">
+                    <div class="map-canvas" id="mapCanvas">
+                        <svg class="map-svg" id="mapSvg" viewBox="0 0 8192 8192" preserveAspectRatio="xMidYMid meet">
+                            <defs>
+                                <image width="8192" height="8192" id="img1" href="assets/samap.svg"/>
+                            </defs>
+                            <use href="#img1" x="0" y="0" width="8192" height="8192"/>
+                            <g id="markersGroup"></g>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Map controls -->
+                <div class="map-controls">
+                    <button id="zoomInBtn" class="btn btn-sm" title="Zoom avant">+</button>
+                    <button id="zoomOutBtn" class="btn btn-sm" title="Zoom arrière">−</button>
+                    <button id="resetViewBtn" class="btn btn-sm" title="Réinitialiser la vue">↻</button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal for adding/editing points -->
+    <div class="modal" id="pointModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Ajouter un point</h2>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="pointName">Nom du point</label>
+                    <input type="text" id="pointName" placeholder="Ex: Panneau publicitaire #1" />
+                </div>
+
+                <div class="form-group">
+                    <label for="pointDescription">Description</label>
+                    <textarea id="pointDescription" placeholder="Description du point..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="pointImage">Image</label>
+                    <div class="image-upload">
+                        <input type="file" id="pointImage" accept="image/*" />
+                        <label for="pointImage" class="upload-label">Choisir une image</label>
+                    </div>
+                    <div class="image-preview" id="imagePreview"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="pointColor">Couleur du marqueur</label>
+                    <div class="color-picker">
+                        <input type="color" id="pointColor" value="#FF006E" />
+                        <span id="colorDisplay">#FF006E</span>
+                    </div>
+                </div>
+
+                <div class="coordinates-info">
+                    <p>Position: <span id="coordsDisplay">Cliquez sur la map</span></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelBtn">Annuler</button>
+                <button class="btn btn-primary" id="saveBtn">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for viewing point details -->
+    <div class="modal" id="viewPointModal">
+        <div class="modal-content modal-view">
+            <div class="modal-header">
+                <h2 id="viewPointTitle"></h2>
+                <button class="close-btn" id="closeViewModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="viewPointImage" class="view-image"></div>
+                <div id="viewPointDescription" class="view-description"></div>
+                <div id="viewPointCoords" class="view-coords"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-warning" id="editBtn">✏️ Modifier</button>
+                <button class="btn btn-danger" id="deleteBtn">🗑️ Supprimer</button>
+                <button class="btn btn-secondary" id="closeViewBtn">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

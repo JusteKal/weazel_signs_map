@@ -1,0 +1,16 @@
+{
+  "name": "weazel-signs-map",
+  "version": "1.0.0",
+  "description": "Interactive GTA Map with JSON persistence",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["gta", "map", "weazel"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
