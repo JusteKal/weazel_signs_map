@@ -3,6 +3,8 @@ class MapManager {
         this.points = [];
         this.currentFilter = 'all';
         this.currentZoom = 1.0;
+        this.targetZoom = 1.0;
+        this.zoomAnimationFrame = null;
         this.minZoom = 0.5;
         this.maxZoom = 10;
         this.panX = 0;
@@ -13,12 +15,6 @@ class MapManager {
         this.dragStartPanX = 0;
         this.dragStartPanY = 0;
         this.currentViewingPoint = null;
-
-        // Smooth zoom
-        this._targetZoom = 1.0;
-        this._targetPanX = 0;
-        this._targetPanY = 0;
-        this._zoomAnimFrame = null;
 
         this.initElements();
         this.attachEventListeners();
@@ -60,7 +56,7 @@ class MapManager {
         this.mapViewport.addEventListener('mousemove', (e) => this.drag(e));
         this.mapViewport.addEventListener('mouseup', () => this.stopDrag());
         this.mapViewport.addEventListener('mouseleave', () => this.stopDrag());
-        this.mapViewport.addEventListener('wheel', (e) => this.handleZoom(e), { passive: false });
+        this.mapViewport.addEventListener('wheel', (e) => this.handleZoom(e));
 
         // View point modal
         this.closeViewModal.addEventListener('click', () => this.closeViewPointModal());
@@ -142,9 +138,6 @@ class MapManager {
         this.dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
         this.panX = this.dragStartPanX + deltaX;
         this.panY = this.dragStartPanY + deltaY;
-        // Sync targets pour éviter un saut au prochain zoom
-        this._targetPanX = this.panX;
-        this._targetPanY = this.panY;
         this.updateMapTransform();
     }
 
@@ -156,54 +149,74 @@ class MapManager {
     handleZoom(e) {
         e.preventDefault();
 
+        const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+
+        this.targetZoom = Math.max(
+            this.minZoom,
+            Math.min(this.maxZoom, this.targetZoom * zoomFactor)
+        );
+
         const rect = this.mapViewport.getBoundingClientRect();
-        const cursorX = e.clientX - rect.left;
-        const cursorY = e.clientY - rect.top;
 
-        // Accumule le zoom cible
-        const factor = e.deltaY > 0 ? 0.92 : 1.08;
-        const newTarget = Math.max(this.minZoom, Math.min(this.maxZoom, this._targetZoom * factor));
+        this.zoomCursor = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
 
-        // Ajuste le pan cible pour que le curseur reste fixe
-        this._targetPanX = cursorX - (cursorX - this._targetPanX) * (newTarget / this._targetZoom);
-        this._targetPanY = cursorY - (cursorY - this._targetPanY) * (newTarget / this._targetZoom);
-        this._targetZoom = newTarget;
-
-        // Lance l'animation si pas déjà en cours
-        if (!this._zoomAnimFrame) {
-            this._animateSmoothZoom();
+        if (!this.zoomAnimationFrame) {
+            this.animateZoom();
         }
     }
 
-    _animateSmoothZoom() {
-        const lerp = (a, b, t) => a + (b - a) * t;
-        const speed = 0.14;
+    zoom(factor, cursorX, cursorY) {
+        const oldZoom = this.currentZoom;
+        this.currentZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.currentZoom * factor));
 
-        this.currentZoom = lerp(this.currentZoom, this._targetZoom, speed);
-        this.panX = lerp(this.panX, this._targetPanX, speed);
-        this.panY = lerp(this.panY, this._targetPanY, speed);
+        if (cursorX !== undefined && cursorY !== undefined) {
+            const rect = this.mapViewport.getBoundingClientRect();
+            const x = cursorX - rect.left;
+            const y = cursorY - rect.top;
+            this.panX = x - (x - this.panX) * (this.currentZoom / oldZoom);
+            this.panY = y - (y - this.panY) * (this.currentZoom / oldZoom);
+        }
 
         this.updateMapTransform();
-
-        const done =
-            Math.abs(this.currentZoom - this._targetZoom) < 0.0005 &&
-            Math.abs(this.panX - this._targetPanX) < 0.2 &&
-            Math.abs(this.panY - this._targetPanY) < 0.2;
-
-        if (done) {
-            this.currentZoom = this._targetZoom;
-            this.panX = this._targetPanX;
-            this.panY = this._targetPanY;
-            this.updateMapTransform();
-            this._zoomAnimFrame = null;
-        } else {
-            this._zoomAnimFrame = requestAnimationFrame(() => this._animateSmoothZoom());
-        }
     }
 
+    animateZoom() {
+    const zoomDiff = this.targetZoom - this.currentZoom;
+
+    if (Math.abs(zoomDiff) < 0.001) {
+        this.currentZoom = this.targetZoom;
+        this.updateMapTransform();
+        this.zoomAnimationFrame = null;
+        return;
+    }
+
+    const oldZoom = this.currentZoom;
+
+    // vitesse du zoom (0.15 = très doux)
+    this.currentZoom += zoomDiff * 0.15;
+
+    if (this.zoomCursor) {
+        const x = this.zoomCursor.x;
+        const y = this.zoomCursor.y;
+
+        this.panX = x - (x - this.panX) * (this.currentZoom / oldZoom);
+        this.panY = y - (y - this.panY) * (this.currentZoom / oldZoom);
+    }
+
+    this.updateMapTransform();
+
+    this.zoomAnimationFrame = requestAnimationFrame(() => {
+        this.animateZoom();
+    });
+}
+
     updateMapTransform() {
-        this.mapCanvas.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.currentZoom})`;
+        this.mapCanvas.style.transform = `translate3d(${this.panX}px, ${this.panY}px, 0) scale(${this.currentZoom})`;
         this.zoomLevel.textContent = Math.round(this.currentZoom * 100);
+        this.renderMarkers();
         try { this.updateTiles(); } catch (e) {}
     }
 
@@ -211,9 +224,6 @@ class MapManager {
         this.currentZoom = 1;
         this.panX = 0;
         this.panY = 0;
-        this._targetZoom = 1;
-        this._targetPanX = 0;
-        this._targetPanY = 0;
         this.updateMapTransform();
     }
 
@@ -347,14 +357,27 @@ class MapManager {
     }
 
     centerOnPoint(point) {
-        const vpRect = this.mapViewport.getBoundingClientRect();
-        const vpCenterX = vpRect.width / 2;
-        const vpCenterY = vpRect.height / 2;
+        // Convertit les coordonnées SVG du point en position écran centrée dans le viewport
+        const svg = this.mapSvg;
+        const matrix = svg.getScreenCTM();
+        if (!matrix) return;
 
-        this.panX = vpCenterX - point.x * this.currentZoom;
-        this.panY = vpCenterY - point.y * this.currentZoom;
-        this._targetPanX = this.panX;
-        this._targetPanY = this.panY;
+        // Position du point en coordonnées écran avant transformation
+        const pt = svg.createSVGPoint();
+        pt.x = point.x;
+        pt.y = point.y;
+        const screenPt = pt.matrixTransform(matrix);
+
+        const vpRect = this.mapViewport.getBoundingClientRect();
+        const vpCenterX = vpRect.left + vpRect.width / 2;
+        const vpCenterY = vpRect.top + vpRect.height / 2;
+
+        // Décalage nécessaire pour centrer le point
+        const dx = vpCenterX - screenPt.x;
+        const dy = vpCenterY - screenPt.y;
+
+        this.panX += dx;
+        this.panY += dy;
         this.updateMapTransform();
     }
 
