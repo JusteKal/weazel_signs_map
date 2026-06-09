@@ -433,15 +433,17 @@ class MapManager {
     loadTile(r, c) {
         const svgns = 'http://www.w3.org/2000/svg';
         const fname = `map tiles/GTA-V-Custom-Postal-Code-Map_r${r}_c${c}.jpg`;
-        const x = (c - 1) * this.tileSize;
-        const y = (r - 1) * this.tileSize;
+        const x = Math.floor((c - 1) * this.tileSize);
+        const y = Math.floor((r - 1) * this.tileSize);
+        const w = Math.ceil(this.tileSize) + 1;
+        const h = Math.ceil(this.tileSize) + 1;
 
         const img = document.createElementNS(svgns, 'image');
         img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `assets/${fname}`);
         img.setAttribute('x', x);
         img.setAttribute('y', y);
-        img.setAttribute('width', this.tileSize);
-        img.setAttribute('height', this.tileSize);
+        img.setAttribute('width', w);
+        img.setAttribute('height', h);
         img.setAttribute('preserveAspectRatio', 'none');
 
         const key = `${r - 1}_${c - 1}`;
