@@ -3,6 +3,8 @@ class MapManager {
         this.points = [];
         this.currentFilter = 'all';
         this.currentZoom = 1.0;
+        this.targetZoom = 1.0;
+        this.zoomAnimationFrame = null;
         this.minZoom = 0.5;
         this.maxZoom = 10;
         this.panX = 0;
@@ -146,8 +148,24 @@ class MapManager {
 
     handleZoom(e) {
         e.preventDefault();
+
         const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-        this.zoom(zoomFactor, e.clientX, e.clientY);
+
+        this.targetZoom = Math.max(
+            this.minZoom,
+            Math.min(this.maxZoom, this.targetZoom * zoomFactor)
+        );
+
+        const rect = this.mapViewport.getBoundingClientRect();
+
+        this.zoomCursor = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+
+        if (!this.zoomAnimationFrame) {
+            this.animateZoom();
+        }
     }
 
     zoom(factor, cursorX, cursorY) {
@@ -165,8 +183,38 @@ class MapManager {
         this.updateMapTransform();
     }
 
+    animateZoom() {
+    const zoomDiff = this.targetZoom - this.currentZoom;
+
+    if (Math.abs(zoomDiff) < 0.001) {
+        this.currentZoom = this.targetZoom;
+        this.updateMapTransform();
+        this.zoomAnimationFrame = null;
+        return;
+    }
+
+    const oldZoom = this.currentZoom;
+
+    // vitesse du zoom (0.15 = très doux)
+    this.currentZoom += zoomDiff * 0.15;
+
+    if (this.zoomCursor) {
+        const x = this.zoomCursor.x;
+        const y = this.zoomCursor.y;
+
+        this.panX = x - (x - this.panX) * (this.currentZoom / oldZoom);
+        this.panY = y - (y - this.panY) * (this.currentZoom / oldZoom);
+    }
+
+    this.updateMapTransform();
+
+    this.zoomAnimationFrame = requestAnimationFrame(() => {
+        this.animateZoom();
+    });
+}
+
     updateMapTransform() {
-        this.mapCanvas.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.currentZoom})`;
+        this.mapCanvas.style.transform = `translate3d(${this.panX}px, ${this.panY}px, 0) scale(${this.currentZoom})`;
         this.zoomLevel.textContent = Math.round(this.currentZoom * 100);
         this.renderMarkers();
         try { this.updateTiles(); } catch (e) {}

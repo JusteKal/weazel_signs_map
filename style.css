@@ -218,6 +218,7 @@ main.map-container {
     position: relative;
     cursor: grab;
     transform-origin: 0 0;
+    will-change: transform;
     display: grid;
 }
 
