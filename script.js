@@ -60,7 +60,6 @@ class MapManager {
         this.viewPointDescription = document.getElementById('viewPointDescription');
         this.viewPointCoords = document.getElementById('viewPointCoords');
         this.closeViewModal = document.getElementById('closeViewModal');
-        this.editBtn = document.getElementById('editBtn');
         this.deleteBtn = document.getElementById('deleteBtn');
         this.closeViewBtn = document.getElementById('closeViewBtn');
     }
@@ -93,7 +92,6 @@ class MapManager {
         // View point modal events
         this.closeViewModal.addEventListener('click', () => this.closeViewPointModal());
         this.closeViewBtn.addEventListener('click', () => this.closeViewPointModal());
-        this.editBtn.addEventListener('click', () => this.editPoint());
         this.deleteBtn.addEventListener('click', () => this.deletePoint());
 
         // create tiles group for lazy tile loading (tiles under markers)
@@ -262,29 +260,6 @@ class MapManager {
         this.saveToStorage();
         this.closePointModal();
         this.render();
-    }
-
-    editPoint() {
-        if (!this.currentViewingPoint) return;
-        this.closeViewPointModal();
-        this.currentEditingPoint = { ...this.currentViewingPoint };
-        this.modalTitle.textContent = 'Modifier le point';
-        this.pointName.value = this.currentViewingPoint.name;
-        this.pointDescription.value = this.currentViewingPoint.description || '';
-        this.pointColor.value = this.currentViewingPoint.color;
-        this.colorDisplay.textContent = this.currentViewingPoint.color;
-        this.coordsDisplay.textContent = `X: ${Math.round(this.currentViewingPoint.x)}, Y: ${Math.round(this.currentViewingPoint.y)}`;
-
-        if (this.currentViewingPoint.imageData) {
-            const img = document.createElement('img');
-            img.src = this.currentViewingPoint.imageData;
-            this.imagePreview.innerHTML = '';
-            this.imagePreview.appendChild(img);
-        }
-
-        this.pointImage.value = '';
-        this.saveBtn.textContent = 'Mettre à jour';
-        this.pointModal.classList.add('active');
     }
 
     deletePoint() {
