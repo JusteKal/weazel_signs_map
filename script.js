@@ -1,6 +1,7 @@
 class MapManager {
     constructor() {
         this.points = [];
+        this.currentFilter = 'all';
         this.currentZoom = 1.0;
         this.minZoom = 0.5;
         this.maxZoom = 10;
@@ -58,6 +59,16 @@ class MapManager {
         // View point modal
         this.closeViewModal.addEventListener('click', () => this.closeViewPointModal());
         this.closeViewBtn.addEventListener('click', () => this.closeViewPointModal());
+
+        // Filter buttons
+        document.querySelectorAll('.btn-filter').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.currentFilter = btn.dataset.filter;
+                this.render();
+            });
+        });
 
         // Tiles group
         if (this.mapSvg) {
@@ -124,6 +135,7 @@ class MapManager {
     updateMapTransform() {
         this.mapCanvas.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.currentZoom})`;
         this.zoomLevel.textContent = Math.round(this.currentZoom * 100);
+        this.renderMarkers();
         try { this.updateTiles(); } catch (e) {}
     }
 
@@ -134,10 +146,25 @@ class MapManager {
         this.updateMapTransform();
     }
 
+    getPointType(point) {
+        const name = (point.name || '').toLowerCase();
+        if (name.includes('grand')) return 'grand';
+        if (name.includes('medium')) return 'medium';
+        if (name.includes('petit')) return 'petit';
+        if (name.includes('mur')) return 'mur';
+        return 'autre';
+    }
+
+    getFilteredPoints() {
+        if (this.currentFilter === 'all') return this.points;
+        return this.points.filter(p => this.getPointType(p) === this.currentFilter);
+    }
+
     render() {
         this.renderMarkers();
         this.renderPointsList();
-        this.pointCount.textContent = this.points.length;
+        const filtered = this.getFilteredPoints();
+        this.pointCount.textContent = filtered.length;
         try { this.updateTiles(); } catch (e) {}
     }
 
@@ -145,35 +172,57 @@ class MapManager {
         if (!this.markersGroup) return;
         while (this.markersGroup.firstChild) this.markersGroup.removeChild(this.markersGroup.firstChild);
 
+        const baseRadius = Math.max(14, Math.min(40, 22 / this.currentZoom));
+        const innerRadius = baseRadius * 0.4;
+        const strokeWidth = baseRadius * 0.28;
+        const fontSize = baseRadius * 1.4;
+        const labelY = -(baseRadius + 10);
+
         const svgns = 'http://www.w3.org/2000/svg';
-        this.points.forEach(point => {
+        this.getFilteredPoints().forEach(point => {
             const g = document.createElementNS(svgns, 'g');
             g.setAttribute('class', 'svg-marker');
             g.setAttribute('transform', `translate(${point.x}, ${point.y})`);
             g.style.cursor = 'pointer';
 
             const outer = document.createElementNS(svgns, 'circle');
-            outer.setAttribute('r', 20);
+            outer.setAttribute('r', baseRadius);
             outer.setAttribute('fill', point.color || '#FF006E');
             outer.setAttribute('stroke', '#fff');
-            outer.setAttribute('stroke-width', 6);
+            outer.setAttribute('stroke-width', strokeWidth);
             outer.setAttribute('opacity', 0.95);
 
             const inner = document.createElementNS(svgns, 'circle');
-            inner.setAttribute('r', 8);
+            inner.setAttribute('r', innerRadius);
             inner.setAttribute('fill', '#ffffff');
             inner.setAttribute('opacity', 0.95);
 
             g.appendChild(outer);
             g.appendChild(inner);
 
+            // Label background pill
+            const labelText = point.name || '';
+            const charWidth = fontSize * 0.6;
+            const pillW = labelText.length * charWidth + fontSize;
+            const pillH = fontSize * 1.4;
+
+            const labelBg = document.createElementNS(svgns, 'rect');
+            labelBg.setAttribute('class', 'label-bg');
+            labelBg.setAttribute('x', -(pillW / 2));
+            labelBg.setAttribute('y', labelY - pillH * 0.75);
+            labelBg.setAttribute('width', pillW);
+            labelBg.setAttribute('height', pillH);
+            labelBg.setAttribute('rx', pillH / 2);
+            labelBg.setAttribute('ry', pillH / 2);
+
             const label = document.createElementNS(svgns, 'text');
             label.setAttribute('x', 0);
-            label.setAttribute('y', -30);
+            label.setAttribute('y', labelY);
             label.setAttribute('text-anchor', 'middle');
-            label.setAttribute('fill', 'var(--text)');
-            label.setAttribute('font-size', '28');
-            label.textContent = point.name || '';
+            label.setAttribute('font-size', fontSize);
+            label.textContent = labelText;
+
+            g.appendChild(labelBg);
             g.appendChild(label);
 
             g.addEventListener('click', (e) => {
@@ -186,13 +235,14 @@ class MapManager {
     }
 
     renderPointsList() {
-        if (this.points.length === 0) {
+        const filtered = this.getFilteredPoints();
+        if (filtered.length === 0) {
             this.pointsList.innerHTML = '<p class="empty-state">Aucun point disponible</p>';
             return;
         }
 
         this.pointsList.innerHTML = '';
-        this.points.forEach(point => {
+        filtered.forEach(point => {
             const item = document.createElement('div');
             item.className = 'point-item';
             item.innerHTML = `

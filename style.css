@@ -17,12 +17,13 @@
     --danger: #e05c8a;
     --warning: #c966e0;
     --success: #7c6af0;
-    --ocean: #1e1a2e;
+    --ocean: #10a9d5;
 }
 
 html, body {
     width: 100%;
     height: 100%;
+    max-height: 100vh;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-weight: 500;
     background: var(--bg);
@@ -37,19 +38,31 @@ body {
     display: flex;
     flex-direction: column;
     width: 100%;
-    height: 100%;
+    height: 100vh;
 }
 
 /* Header */
 .header {
     background: #161228;
-    padding: 14px 28px;
+    padding: 10px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--border);
     box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    flex-shrink: 0;
+    min-height: 0;
 }
+
+/* Content layout */
+.content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* filter buttons */
 
 .header h1 {
     font-size: 22px;
@@ -69,28 +82,47 @@ body {
     align-items: center;
 }
 
-.zoom-info {
-    color: var(--text-light);
-    font-size: 14px;
-    padding: 8px 12px;
-    background: var(--bg-light);
-    border-radius: 4px;
+.filter-btns {
+    display: flex;
+    gap: 6px;
 }
 
-/* Content layout */
-.content {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
+.btn-filter {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: transparent;
+    color: var(--text-light);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-filter:hover {
+    border-color: var(--primary);
+    color: var(--text);
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-filter.active {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-color: transparent;
+    color: #fff;
 }
 
 /* Sidebar */
 .sidebar {
-    width: 300px;
+    width: 260px;
     background: var(--bg-light);
     border-right: 2px solid var(--border);
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .sidebar-header {
@@ -203,16 +235,22 @@ main.map-container {
 .svg-marker circle { 
     filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
 }
+.svg-marker .label-bg {
+    fill: #2a2440;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
 .svg-marker text {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    fill: var(--text);
-    font-size: 14px;
+    fill: #e2d9f3;
+    font-weight: 600;
     pointer-events: none;
-    opacity: 0.95;
-    display: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
 }
+.svg-marker:hover .label-bg,
 .svg-marker:hover text {
-    display: block;
+    opacity: 1;
 }
 
 .map-canvas.grabbing {
