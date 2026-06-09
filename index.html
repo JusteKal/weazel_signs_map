@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weazel Signs Map - MC </title>
-    <link rel="shortcut icon" href="assets\signsmapico.svg" type="image/svg+xml">
+    <title>Weazel Signs Map - GTA SA</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -51,11 +50,11 @@
                     </div>
                 </div>
 
-                <!-- Map controls -->
-                <div class="map-controls">
-                    <button id="zoomInBtn" class="btn btn-sm" title="Zoom avant">+</button>
-                    <button id="zoomOutBtn" class="btn btn-sm" title="Zoom arrière">−</button>
-                    <button id="resetViewBtn" class="btn btn-sm" title="Réinitialiser la vue">↻</button>
+                <!-- Coord tracker -->
+                <div class="coord-tracker" id="coordTracker">
+                    <span class="coord-status" id="coordStatus">libre</span>
+                    <span class="coord-label">X: <strong id="cursorX">—</strong> &nbsp; Y: <strong id="cursorY">—</strong></span>
+                    <button class="btn-copy" id="copyCoordBtn" title="Copier le JSON du point">📋 Copier JSON</button>
                 </div>
             </main>
         </div>

@@ -29,10 +29,6 @@ class MapManager {
         this.pointCount = document.getElementById('pointCount');
         this.zoomLevel = document.getElementById('zoomLevel');
 
-        this.zoomInBtn = document.getElementById('zoomInBtn');
-        this.zoomOutBtn = document.getElementById('zoomOutBtn');
-        this.resetViewBtn = document.getElementById('resetViewBtn');
-
         // View point modal
         this.viewPointModal = document.getElementById('viewPointModal');
         this.viewPointTitle = document.getElementById('viewPointTitle');
@@ -41,6 +37,15 @@ class MapManager {
         this.viewPointCoords = document.getElementById('viewPointCoords');
         this.closeViewModal = document.getElementById('closeViewModal');
         this.closeViewBtn = document.getElementById('closeViewBtn');
+
+        // Coord tracker
+        this.cursorX = document.getElementById('cursorX');
+        this.cursorY = document.getElementById('cursorY');
+        this.copyCoordBtn = document.getElementById('copyCoordBtn');
+        this.coordStatus = document.getElementById('coordStatus');
+        this._lastSvgX = 0;
+        this._lastSvgY = 0;
+        this._coordLocked = false;
     }
 
     attachEventListeners() {
@@ -51,14 +56,42 @@ class MapManager {
         this.mapViewport.addEventListener('mouseleave', () => this.stopDrag());
         this.mapViewport.addEventListener('wheel', (e) => this.handleZoom(e));
 
-        // Controls
-        this.zoomInBtn.addEventListener('click', () => this.zoom(1.2));
-        this.zoomOutBtn.addEventListener('click', () => this.zoom(0.8));
-        this.resetViewBtn.addEventListener('click', () => this.resetView());
-
         // View point modal
         this.closeViewModal.addEventListener('click', () => this.closeViewPointModal());
         this.closeViewBtn.addEventListener('click', () => this.closeViewPointModal());
+
+        // Coord tracker — mousemove sur la map
+        this.mapViewport.addEventListener('mousemove', (e) => this.trackCoords(e));
+
+        // Clic droit = verrouiller / déverrouiller les coordonnées
+        this.mapViewport.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            this._coordLocked = !this._coordLocked;
+            if (this.coordStatus) {
+                this.coordStatus.textContent = this._coordLocked ? '🔒 verrouillé' : 'libre';
+                this.coordStatus.classList.toggle('locked', this._coordLocked);
+            }
+        });
+
+        this.copyCoordBtn.addEventListener('click', () => {
+            const json = JSON.stringify({
+                x: Math.round(this._lastSvgX),
+                y: Math.round(this._lastSvgY),
+                id: Date.now(),
+                name: "Nouveau point",
+                description: "",
+                color: "#ff006e",
+                imageData: null
+            }, null, 2);
+            navigator.clipboard.writeText(json).then(() => {
+                this.copyCoordBtn.textContent = '✅ Copié !';
+                this.copyCoordBtn.classList.add('copied');
+                setTimeout(() => {
+                    this.copyCoordBtn.textContent = '📋 Copier JSON';
+                    this.copyCoordBtn.classList.remove('copied');
+                }, 1800);
+            });
+        });
 
         // Filter buttons
         document.querySelectorAll('.btn-filter').forEach(btn => {
@@ -144,6 +177,24 @@ class MapManager {
         this.panX = 0;
         this.panY = 0;
         this.updateMapTransform();
+    }
+
+    trackCoords(e) {
+        if (this._coordLocked) return;
+        const svg = this.mapSvg;
+        const matrix = svg.getScreenCTM();
+        if (!matrix) return;
+        const inv = matrix.inverse();
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+        const svgPt = pt.matrixTransform(inv);
+        const x = Math.round(svgPt.x);
+        const y = Math.round(svgPt.y);
+        this._lastSvgX = x;
+        this._lastSvgY = y;
+        if (this.cursorX) this.cursorX.textContent = x;
+        if (this.cursorY) this.cursorY.textContent = y;
     }
 
     getPointType(point) {
