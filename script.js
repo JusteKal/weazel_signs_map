@@ -380,39 +380,56 @@ class MapManager {
     }
 
     saveToStorage() {
-        // Save points to server via API
+        // Toujours sauvegarder dans localStorage comme backup
+        localStorage.setItem('mapPoints', JSON.stringify(this.points));
+
+        // Tente aussi de sauvegarder via l'API serveur si disponible
         fetch('/api/points', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(this.points)
-        }).catch(err => console.error('Error saving points:', err));
+        }).catch(() => {
+            // Serveur non disponible, localStorage suffit
+        });
     }
 
     async loadPoints() {
+        // 1. Essaie l'API serveur (data.json via Node.js)
         try {
-            // Try to load from API first (server with data.json)
             const response = await fetch('/api/points');
             if (response.ok) {
                 this.points = await response.json();
-            } else {
-                // Fallback to localStorage if API not available
-                const stored = localStorage.getItem('mapPoints');
-                if (stored) {
-                    this.points = JSON.parse(stored);
-                }
+                console.log('Points chargés depuis le serveur');
+                return;
             }
-        } catch (err) {
-            // Fallback to localStorage if API fails
-            console.log('API not available, using localStorage');
+        } catch (e) {
+            console.log('Serveur non disponible, tentative data.json statique...');
+        }
+
+        // 2. Fallback : lit data.json directement comme fichier statique
+        try {
+            const response = await fetch('./data.json');
+            if (response.ok) {
+                const data = await response.json();
+                // data.json a le format { points: [...] }
+                this.points = data.points || [];
+                console.log('Points chargés depuis data.json statique');
+                return;
+            }
+        } catch (e) {
+            console.log('data.json non disponible, tentative localStorage...');
+        }
+
+        // 3. Dernier recours : localStorage
+        try {
             const stored = localStorage.getItem('mapPoints');
             if (stored) {
-                try {
-                    this.points = JSON.parse(stored);
-                } catch (e) {
-                    console.error('Error loading points:', e);
-                    this.points = [];
-                }
+                this.points = JSON.parse(stored);
+                console.log('Points chargés depuis localStorage');
             }
+        } catch (e) {
+            console.error('Erreur chargement localStorage:', e);
+            this.points = [];
         }
     }
 
