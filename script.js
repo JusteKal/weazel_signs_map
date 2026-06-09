@@ -300,9 +300,37 @@ class MapManager {
                 <div class="point-item-name">${this.escapeHtml(point.name)}</div>
                 <div class="point-item-meta">X: ${Math.round(point.x)}, Y: ${Math.round(point.y)}</div>
             `;
-            item.addEventListener('click', () => this.showViewPointModal(point));
+            item.addEventListener('click', () => {
+                this.centerOnPoint(point);
+                this.showViewPointModal(point);
+            });
             this.pointsList.appendChild(item);
         });
+    }
+
+    centerOnPoint(point) {
+        // Convertit les coordonnées SVG du point en position écran centrée dans le viewport
+        const svg = this.mapSvg;
+        const matrix = svg.getScreenCTM();
+        if (!matrix) return;
+
+        // Position du point en coordonnées écran avant transformation
+        const pt = svg.createSVGPoint();
+        pt.x = point.x;
+        pt.y = point.y;
+        const screenPt = pt.matrixTransform(matrix);
+
+        const vpRect = this.mapViewport.getBoundingClientRect();
+        const vpCenterX = vpRect.left + vpRect.width / 2;
+        const vpCenterY = vpRect.top + vpRect.height / 2;
+
+        // Décalage nécessaire pour centrer le point
+        const dx = vpCenterX - screenPt.x;
+        const dy = vpCenterY - screenPt.y;
+
+        this.panX += dx;
+        this.panY += dy;
+        this.updateMapTransform();
     }
 
     showViewPointModal(point) {
