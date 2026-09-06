@@ -409,11 +409,18 @@ class MapManager {
     async loadPoints() {
         // 1. API serveur
         try {
-            const response = await fetch('/api/points');
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 1500);
+            const response = await fetch('/api/points', { signal: controller.signal });
+            clearTimeout(timeout);
             if (response.ok) {
-                this.points = await response.json();
-                console.log('Points chargés depuis le serveur');
-                return;
+                const data = await response.json();
+                const points = Array.isArray(data) ? data : data.points;
+                if (Array.isArray(points)) {
+                    this.points = points;
+                    console.log('Points chargés depuis le serveur');
+                    return;
+                }
             }
         } catch (e) {
             console.log('Serveur non disponible, tentative data.json statique...');
@@ -538,4 +545,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     const mapManager = new MapManager();
     await mapManager.loadPoints();
     mapManager.render();
+    requestAnimationFrame(() => mapManager.render());
 });
